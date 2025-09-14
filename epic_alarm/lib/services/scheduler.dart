@@ -5,8 +5,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
-import 'package:timezone/data/latest.dart' as tz;
+import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
+import 'time_utils.dart';
 
 import '../models/alarm.dart';
 import 'storage/hive_storage.dart';
@@ -29,9 +30,7 @@ class AlarmSchedulerService {
     if (_initialized) return;
     // Initialize timezone database (best effort). We default to device local.
     try {
-      tz.initializeTimeZones();
-      // We intentionally do not override tz.local here to avoid guessing.
-      // tz.local will follow the platform default if properly configured by the timezone package.
+      await TimeUtils.ensureInitialized();
     } catch (_) {
       // no-op if already initialized or on unsupported platforms
     }
@@ -54,7 +53,7 @@ class AlarmSchedulerService {
         throw MissingPermissionsException(missing: missing);
       }
     }
-    final DateTime next = _computeNextOccurrence(alarm, DateTime.now());
+    final DateTime next = TimeUtils.nextOccurrenceForAlarm(alarm, DateTime.now());
     await _backend.scheduleAt(alarm.id, next, payload: alarm.id);
   }
 
@@ -97,39 +96,7 @@ class AlarmSchedulerService {
     await _backend.scheduleAt(alarmId, when, payload: alarmId);
   }
 
-  // Computes the next DateTime in device local time for a given alarm configuration.
-  DateTime _computeNextOccurrence(Alarm alarm, DateTime now) {
-    final DateTime todayAtTime = DateTime(
-      now.year,
-      now.month,
-      now.day,
-      alarm.timeOfDay.hour,
-      alarm.timeOfDay.minute,
-    );
-
-    bool isWeekday(int weekday) => weekday >= DateTime.monday && weekday <= DateTime.friday;
-    bool isWeekend(int weekday) => weekday == DateTime.saturday || weekday == DateTime.sunday;
-
-    DateTime candidate = todayAtTime.isAfter(now) ? todayAtTime : todayAtTime.add(const Duration(days: 1));
-
-    switch (alarm.repeat) {
-      case AlarmRepeat.once:
-        // If the time for today has passed, schedule for tomorrow once.
-        return todayAtTime.isAfter(now) ? todayAtTime : todayAtTime.add(const Duration(days: 1));
-      case AlarmRepeat.daily:
-        return candidate;
-      case AlarmRepeat.weekdays:
-        while (!isWeekday(candidate.weekday)) {
-          candidate = candidate.add(const Duration(days: 1));
-        }
-        return candidate;
-      case AlarmRepeat.weekends:
-        while (!isWeekend(candidate.weekday)) {
-          candidate = candidate.add(const Duration(days: 1));
-        }
-        return candidate;
-    }
-  }
+  // Legacy private method removed. Logic moved to TimeUtils.
 }
 
 class MissingPermissionsException implements Exception {
