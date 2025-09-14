@@ -133,6 +133,7 @@ class AlarmAdapter extends TypeAdapter<Alarm> {
 
 class HiveStorageService {
   static const String alarmsBoxName = 'alarms_box';
+  static const String settingsBoxName = 'settings_box';
 
   static Future<void> initialize() async {
     final appDir = await path_provider.getApplicationDocumentsDirectory();
@@ -145,9 +146,11 @@ class HiveStorageService {
     if (!Hive.isAdapterRegistered(3)) Hive.registerAdapter(AlarmAdapter());
 
     await Hive.openBox<Alarm>(alarmsBoxName);
+    await Hive.openBox(settingsBoxName);
   }
 
   Future<Box<Alarm>> _alarmsBox() async => Hive.openBox<Alarm>(alarmsBoxName);
+  Future<Box> _settingsBox() async => Hive.openBox(settingsBoxName);
 
   Future<List<Alarm>> getAlarms() async {
     final box = await _alarmsBox();
@@ -177,6 +180,18 @@ class HiveStorageService {
   Future<void> clearAll() async {
     final box = await _alarmsBox();
     await box.clear();
+  }
+
+  Future<bool?> getBoolSetting(String key) async {
+    final box = await _settingsBox();
+    final dynamic value = box.get(key);
+    if (value is bool) return value;
+    return null;
+  }
+
+  Future<void> setBoolSetting(String key, bool value) async {
+    final box = await _settingsBox();
+    await box.put(key, value);
   }
 }
 
