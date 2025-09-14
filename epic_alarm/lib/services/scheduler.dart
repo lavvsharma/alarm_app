@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:timezone/data/latest.dart' as tz;
@@ -9,6 +10,8 @@ import 'package:timezone/timezone.dart' as tz;
 
 import '../models/alarm.dart';
 import 'storage/hive_storage.dart';
+import '../routes.dart';
+import 'navigation.dart';
 
 /// Cross-platform scheduler abstraction.
 /// Exposes scheduleAlarm/cancelAlarm/rescheduleAllOnBoot and delegates to a pluggable backend.
@@ -74,6 +77,14 @@ class AlarmSchedulerService {
 
   bool isScheduled(String alarmId) => _backend.isKnown(alarmId);
 
+  /// Schedule a one-shot snooze re-trigger at [when].
+  Future<void> snoozeUntil(String alarmId, DateTime when) async {
+    if (!_initialized) {
+      await initialize();
+    }
+    await _backend.scheduleAt(alarmId, when, payload: alarmId);
+  }
+
   // Computes the next DateTime in device local time for a given alarm configuration.
   DateTime _computeNextOccurrence(Alarm alarm, DateTime now) {
     final DateTime todayAtTime = DateTime(
@@ -127,7 +138,22 @@ class LocalNotificationsBackend implements SchedulerBackend {
     const AndroidInitializationSettings androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
     const DarwinInitializationSettings iosInit = DarwinInitializationSettings();
     const InitializationSettings initSettings = InitializationSettings(android: androidInit, iOS: iosInit, macOS: null, linux: null);
-    await _plugin.initialize(initSettings);
+    await _plugin.initialize(
+      initSettings,
+      onDidReceiveNotificationResponse: (NotificationResponse response) async {
+        final String? payload = response.payload;
+        if (payload != null) {
+          try {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              final navigator = NavigationService.navigatorKey.currentState;
+              navigator?.pushNamed(AppRoutes.challenge, arguments: payload);
+            });
+          } catch (_) {
+            // ignore navigation errors in background
+          }
+        }
+      },
+    );
   }
 
   @override
@@ -218,6 +244,6 @@ class AndroidExactAlarmBackend implements SchedulerBackend {
 @pragma('vm:entry-point')
 void _onExactAlarmFired(int id) {
   debugPrint('Exact alarm fired: $id');
-  // C-03 will handle launching full-screen UI and audio when this callback runs.
+  // TODO: Launch full-screen challenge screen via platform channel or background isolate.
 }
 
