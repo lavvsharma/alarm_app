@@ -2,13 +2,17 @@ import 'package:flutter/material.dart';
 import 'screens/alarm_list.dart';
 import 'screens/alarm_edit.dart';
 import 'screens/challenge_screen.dart';
+import 'screens/initial_permissions_flow.dart';
+import 'screens/settings.dart';
+import 'services/di.dart';
+import 'services/platform_permissions.dart';
 
 class AppRoutes {
   static const String splash = '/';
   static const String home = '/home';
   static const String alarmEdit = '/alarm_edit';
   static const String challenge = '/challenge';
-  static const String challenge = '/challenge';
+  static const String settings = '/settings';
 
   static Map<String, WidgetBuilder> buildRoutes() {
     return {
@@ -19,6 +23,8 @@ class AppRoutes {
         final String alarmId = ModalRoute.of(context)!.settings.arguments as String;
         return ChallengeScreen(alarmId: alarmId);
       },
+      AppRoutesPermissions.initial: (context) => const InitialPermissionsFlowScreen(),
+      settings: (context) => const SettingsScreen(),
     };
   }
 }
@@ -31,7 +37,13 @@ class _SplashScreen extends StatelessWidget {
     Future.microtask(() async {
       await Future.delayed(const Duration(milliseconds: 600));
       if (!context.mounted) return;
-      Navigator.of(context).pushReplacementNamed(AppRoutes.home);
+      final PlatformPermissionsService perms = DI.permissions;
+      final bool done = await perms.isOnboardingDone();
+      if (done) {
+        Navigator.of(context).pushReplacementNamed(AppRoutes.home);
+      } else {
+        Navigator.of(context).pushReplacementNamed(AppRoutesPermissions.initial);
+      }
     });
 
     return const Scaffold(
@@ -41,6 +53,10 @@ class _SplashScreen extends StatelessWidget {
     );
   }
 }
+class AppRoutesPermissions {
+  static const String initial = '/initial_permissions';
+}
+
 
 // Home replaced by AlarmListScreen
 

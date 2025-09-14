@@ -4,6 +4,8 @@ import '../models/alarm.dart';
 import '../services/di.dart';
 import '../routes.dart';
 import '../widgets/alarm_tile.dart';
+import '../services/scheduler.dart';
+import '../routes.dart';
 
 class AlarmListScreen extends StatefulWidget {
   const AlarmListScreen({super.key});
@@ -31,7 +33,34 @@ class _AlarmListScreenState extends State<AlarmListScreen> {
     alarm.updatedAt = DateTime.now();
     await DI.hiveStorage.upsertAlarm(alarm);
     if (enabled) {
-      await DI.scheduler.schedule(alarm);
+      try {
+        await DI.scheduler.schedule(alarm);
+      } on MissingPermissionsException catch (e) {
+        if (!mounted) return;
+        final String details = e.missing.join(', ');
+        await showDialog<void>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Permissions needed'),
+            content: Text('To enable this alarm, please grant: $details'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).pushNamed(AppRoutesPermissions.initial);
+                },
+                child: const Text('Fix now'),
+              ),
+            ],
+          ),
+        );
+        alarm.enabled = false;
+        await DI.hiveStorage.upsertAlarm(alarm);
+      }
     } else {
       await DI.scheduler.cancel(alarm.id);
     }
@@ -57,7 +86,35 @@ class _AlarmListScreenState extends State<AlarmListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Alarms')),
+      appBar: AppBar(
+        title: const Text('Alarms'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            tooltip: 'Settings',
+            onPressed: () => Navigator.of(context).pushNamed(AppRoutes.settings),
+          ),
+        ],
+      ),
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            const DrawerHeader(
+              decoration: BoxDecoration(color: Colors.indigo),
+              child: Text('Epic Alarm', style: TextStyle(color: Colors.white, fontSize: 20)),
+            ),
+            ListTile(
+              leading: const Icon(Icons.settings),
+              title: const Text('Settings'),
+              onTap: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).pushNamed(AppRoutes.settings);
+              },
+            ),
+          ],
+        ),
+      ),
       body: FutureBuilder<List<Alarm>>(
         future: _alarmsFuture,
         builder: (context, snapshot) {

@@ -12,12 +12,14 @@ import '../models/alarm.dart';
 import 'storage/hive_storage.dart';
 import '../routes.dart';
 import 'navigation.dart';
+import 'platform_permissions.dart';
 
 /// Cross-platform scheduler abstraction.
 /// Exposes scheduleAlarm/cancelAlarm/rescheduleAllOnBoot and delegates to a pluggable backend.
 class AlarmSchedulerService {
   final SchedulerBackend _backend;
   bool _initialized = false;
+  final PlatformPermissionsService _permissions = PlatformPermissionsService();
 
   AlarmSchedulerService({SchedulerBackend? backend})
       : _backend = backend ?? (Platform.isAndroid ? AndroidExactAlarmBackend() : LocalNotificationsBackend());
@@ -41,6 +43,16 @@ class AlarmSchedulerService {
   Future<void> scheduleAlarm(Alarm alarm) async {
     if (!_initialized) {
       await initialize();
+    }
+    // Enforce required permissions for exact alarms on Android
+    if (Platform.isAndroid && _backend is AndroidExactAlarmBackend) {
+      final PermissionsSnapshot snapshot = await _permissions.currentSnapshot(persist: true);
+      final List<String> missing = <String>[];
+      if (!snapshot.notificationsGranted) missing.add('Notifications');
+      if (!snapshot.exactAlarmGranted) missing.add('Exact Alarms');
+      if (missing.isNotEmpty) {
+        throw MissingPermissionsException(missing: missing);
+      }
     }
     final DateTime next = _computeNextOccurrence(alarm, DateTime.now());
     await _backend.scheduleAt(alarm.id, next, payload: alarm.id);
@@ -118,6 +130,15 @@ class AlarmSchedulerService {
         return candidate;
     }
   }
+}
+
+class MissingPermissionsException implements Exception {
+  final List<String> missing;
+
+  MissingPermissionsException({required this.missing});
+
+  @override
+  String toString() => 'MissingPermissionsException(missing: ${missing.join(', ')})';
 }
 
 /// Backend interface for scheduling primitives.
