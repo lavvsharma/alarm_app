@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
+import 'screens/alarm_list.dart';
+import 'screens/alarm_edit.dart';
 
 class AppRoutes {
   static const String splash = '/';
   static const String home = '/home';
+  static const String alarmEdit = '/alarm_edit';
 
   static Map<String, WidgetBuilder> buildRoutes() {
     return {
       splash: (context) => const _SplashScreen(),
-      home: (context) => const _HomeScreen(),
+      home: (context) => const AlarmListScreen(),
+      alarmEdit: (context) => const AlarmEditScreen(),
     };
   }
 }
@@ -31,15 +35,5 @@ class _SplashScreen extends StatelessWidget {
   }
 }
 
-class _HomeScreen extends StatelessWidget {
-  const _HomeScreen();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Home')),
-      body: const Center(child: Text('Home placeholder')),
-    );
-  }
-}
+// Home replaced by AlarmListScreen
 
