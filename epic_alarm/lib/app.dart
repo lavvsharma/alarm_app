@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'routes.dart';
+import 'services/navigation.dart';
 
 class EpicAlarmApp extends StatelessWidget {
   const EpicAlarmApp({super.key});
@@ -11,6 +12,7 @@ class EpicAlarmApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
       ),
+      navigatorKey: NavigationService.navigatorKey,
       initialRoute: AppRoutes.splash,
       routes: AppRoutes.buildRoutes(),
     );

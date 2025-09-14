@@ -8,5 +8,6 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await HiveStorageService.initialize();
   await DI.scheduler.initialize();
+  await DI.audio.initialize();
   runApp(const EpicAlarmApp());
 }

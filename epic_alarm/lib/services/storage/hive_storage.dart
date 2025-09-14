@@ -154,6 +154,11 @@ class HiveStorageService {
     return box.values.toList(growable: false);
   }
 
+  Future<List<String>> getAlarmIds() async {
+    final box = await _alarmsBox();
+    return box.keys.cast<String>().toList(growable: false);
+  }
+
   Future<void> upsertAlarm(Alarm alarm) async {
     final box = await _alarmsBox();
     await box.put(alarm.id, alarm);
