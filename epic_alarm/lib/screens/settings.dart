@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../services/di.dart';
 import '../services/platform_permissions.dart';
+import '../routes.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -99,6 +100,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   onPressed: () => DI.permissions.openAppSettingsPage(),
                   icon: const Icon(Icons.settings),
                   label: const Text('Open system app settings'),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: () => Navigator.of(context).pushNamed(AppRoutes.whitelistGuide),
+                  icon: const Icon(Icons.battery_saver),
+                  label: const Text('Help: Battery optimization whitelisting'),
                 ),
               ],
             ),

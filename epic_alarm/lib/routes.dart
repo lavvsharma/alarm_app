@@ -4,6 +4,7 @@ import 'screens/alarm_edit.dart';
 import 'screens/challenge_screen.dart';
 import 'screens/initial_permissions_flow.dart';
 import 'screens/settings.dart';
+import 'screens/help/whitelist_guide.dart';
 import 'services/di.dart';
 import 'services/platform_permissions.dart';
 
@@ -13,6 +14,7 @@ class AppRoutes {
   static const String alarmEdit = '/alarm_edit';
   static const String challenge = '/challenge';
   static const String settings = '/settings';
+  static const String whitelistGuide = '/whitelist_guide';
 
   static Map<String, WidgetBuilder> buildRoutes() {
     return {
@@ -25,6 +27,7 @@ class AppRoutes {
       },
       AppRoutesPermissions.initial: (context) => const InitialPermissionsFlowScreen(),
       settings: (context) => const SettingsScreen(),
+      whitelistGuide: (context) => const WhitelistGuideScreen(),
     };
   }
 }
